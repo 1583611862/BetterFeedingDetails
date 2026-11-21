@@ -17,9 +17,9 @@ namespace BetterFeedingDetails.UI
         private const string MaleSymbol = "\u2642";
         private const string FemaleSymbol = "\u2640";
         private const string StarSymbol = "\u2605";
-        private const float FontSize = 10f;
-        private const float StarOffsetX = 9f;
-        private const float NodeSize = 16f;
+        private const float FontSize = 5f;
+        private const float StarOffsetX = 5f;
+        private const float NodeSize = 8f;
 
         private static readonly Color MaleColor = new Color32(74, 144, 255, 255);
         private static readonly Color FemaleColor = new Color32(255, 119, 183, 255);
