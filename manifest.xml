@@ -3,8 +3,8 @@
   <ID>better_feeding_details</ID>
   <Name>凌波丽海苔的更好鱼价值详情</Name>
   <Author>凌波丽海苔</Author>
-  <ModVersion>1.0.1</ModVersion>
-  <Description>在鱼类详情中显示累计饲料花费、当前预计利润与食物消耗构成。Data-only: no changes to the base game's breeding, feeding, growth or butchery rules.</Description>
+  <ModVersion>1.0.5</ModVersion>
+  <Description>鱼类详情显示屠宰价值；循环水养殖系统详情显示每日食物需要量与剩余饲料可维持天数。Data-only: no changes to the base game's breeding, feeding, growth or butchery rules.</Description>
   <GameVersions>
     <Version>0.46</Version>
   </GameVersions>

@@ -8,12 +8,9 @@ namespace BetterFeedingDetails.UI
 {
     internal static class FeedingTooltip
     {
-        private const string PELLET_LABEL = "污泥饲料粒";
-        private const string INDUSTRIAL_LABEL = "工业鱼饲料";
-        private const string MEAT_LABEL = "肉类";
-        private const string OTHER_LABEL = "其他食物";
-
         private const RenderHandler.ColorPalette MONEY_COLOR = RenderHandler.ColorPalette.LightYellow;
+        private const RenderHandler.ColorPalette DAILY_FOOD_COLOR = RenderHandler.ColorPalette.LightCyan;
+        private const RenderHandler.ColorPalette DAYS_LEFT_COLOR = RenderHandler.ColorPalette.Green;
 
         internal static void OnTooltipLate(RichTextBuilder builder, GameItem item)
         {
@@ -21,14 +18,12 @@ namespace BetterFeedingDetails.UI
             {
                 return;
             }
-            if (!FeedLedgerStore.IsTrackableFish(item))
-            {
-                return;
-            }
             try
             {
-                FeedLedger ledger = FeedLedgerStore.Load(item);
-                AppendEconomicLines(builder, item, ledger);
+                if (FeedLedgerStore.IsTrackableFish(item))
+                {
+                    AppendValueLine(builder, item);
+                }
             }
             catch (Exception e)
             {
@@ -36,63 +31,57 @@ namespace BetterFeedingDetails.UI
             }
         }
 
-        private static void AppendEconomicLines(RichTextBuilder builder, GameItem item, FeedLedger ledger)
+        private static void AppendValueLine(RichTextBuilder builder, GameItem item)
         {
             builder.AddLine(" ", ignoreEmpty: true, RenderHandler.ColorPalette.None);
-
-            int expectedRevenue = EstimateButcherRevenue(item);
-
-            bool hasLedger = ledger != null && ledger.SpentKcal > 0f;
-            if (!hasLedger)
-            {
-                builder.AddLine(Loc("bfd.value", FormatMoney(expectedRevenue)), ignoreEmpty: true, MONEY_COLOR);
-                return;
-            }
-
-            double cost = FeedPricing.EstimateCost(ledger);
-            bool hasUnpriced = FeedPricing.HasMeatOrOther(ledger);
-            double profit = expectedRevenue - cost;
-
-            string costText = FormatMoney(cost) + (hasUnpriced ? "+" : string.Empty);
-            bool isProfit = profit >= 0d;
-            RenderHandler.ColorPalette profitColor = isProfit ? RenderHandler.ColorPalette.Green : RenderHandler.ColorPalette.LightRed;
-            string sign = isProfit ? "+" : string.Empty;
-            string profitText = sign + FormatMoney(profit) + (hasUnpriced ? "?" : string.Empty);
-
-            builder.Add(Loc("bfd.value", FormatMoney(expectedRevenue)), MONEY_COLOR, "    ");
-            builder.Add(Loc("bfd.cost", costText), MONEY_COLOR, "    ");
-            builder.AddLine(Loc("bfd.profit", profitText), ignoreEmpty: true, profitColor);
-
-            builder.AddLine(Loc("bfd.foodTitle"), ignoreEmpty: true, RenderHandler.ColorPalette.LightCyan);
-            AppendFoodLine(builder, INDUSTRIAL_LABEL, ledger.industrialSpentKcal, ledger.industrialAbsorbedKcal, FeedPricing.IndustrialCostPerKcal, true);
-            AppendFoodLine(builder, PELLET_LABEL, ledger.pelletSpentKcal, ledger.pelletAbsorbedKcal, FeedPricing.PelletCostPerKcal, true);
-            AppendFoodLine(builder, MEAT_LABEL, ledger.meatSpentKcal, ledger.meatAbsorbedKcal, 0f, false);
-            AppendFoodLine(builder, OTHER_LABEL, ledger.otherSpentKcal, ledger.otherAbsorbedKcal, 0f, false);
-
-            if (hasUnpriced)
-            {
-                builder.AddLine(Loc("bfd.unpricedNote"), ignoreEmpty: true, RenderHandler.ColorPalette.Yellow);
-            }
-            builder.AddLine(Loc("bfd.estimateNote"), ignoreEmpty: true, RenderHandler.ColorPalette.Gray);
+            builder.AddLine(Loc("bfd.value", FormatMoney(EstimateButcherRevenue(item))), ignoreEmpty: true, MONEY_COLOR);
         }
 
-        private static void AppendFoodLine(RichTextBuilder builder, string label, float spentKcal, float absorbedKcal, float costPerKcal, bool priced)
+        internal static void AppendRasLines(RichTextBuilder builder, GameItem machine)
         {
-            if (spentKcal <= 0f)
+            if (builder == null || machine == null || !machine.IsTag("RAS_TAG"))
             {
                 return;
             }
-            string amount;
-            if (priced)
+            GameGridInventory tank = MachineRAS.GetTankGrid(machine);
+            float needKcal = 0f;
+            if (tank != null)
             {
-                double lineCost = spentKcal * costPerKcal;
-                amount = Mathf.RoundToInt(spentKcal) + " kcal  " + FormatMoney(lineCost);
+                foreach (GameItem stock in tank.childItems)
+                {
+                    if (stock == null || !AquacultureHelper.IsLiveStock(stock))
+                    {
+                        continue;
+                    }
+                    FishSpecies species = AquacultureHelper.GetSpecies(stock);
+                    if (species == null)
+                    {
+                        continue;
+                    }
+                    needKcal += AquacultureHelper.GetExpectedDrainTonight(stock, species);
+                }
             }
-            else
+            builder.AddLine(" ", ignoreEmpty: true, RenderHandler.ColorPalette.None);
+            builder.AddLine(Loc("bfd.dailyFood", Mathf.RoundToInt(needKcal).ToString()), ignoreEmpty: true, DAILY_FOOD_COLOR);
+
+            string days = "--";
+            if (needKcal > 0f)
             {
-                amount = Mathf.RoundToInt(spentKcal) + " kcal  --";
+                float remainKcal = GetRemainingFeedKcal(machine);
+                days = (remainKcal / needKcal).ToString("0.0", System.Globalization.CultureInfo.InvariantCulture);
             }
-            builder.AddLine("  " + label + " x" + Mathf.RoundToInt(absorbedKcal) + "  " + amount, ignoreEmpty: true, RenderHandler.ColorPalette.LightCyan);
+            builder.AddLine(Loc("bfd.daysLeft", days), ignoreEmpty: true, DAYS_LEFT_COLOR);
+        }
+
+        private static int GetRemainingFeedKcal(GameItem machine)
+        {
+            GameSlotInventory slot = MachineRAS.GetDispenserSlot(machine);
+            GameItem dispenser = slot == null ? null : slot.childItem;
+            if (dispenser == null || !dispenser.IsTag("FEED_DISPENSER_TAG"))
+            {
+                return 0;
+            }
+            return Mathf.Max(0, dispenser.GetTagReadonly(MachineFeedDispenser.STORED_KCAL_TAG).GetInt());
         }
 
         private static int EstimateButcherRevenue(GameItem item)
@@ -150,11 +139,8 @@ namespace BetterFeedingDetails.UI
             switch (key)
             {
                 case "bfd.value": return "价值：" + arg;
-                case "bfd.cost": return "花费：" + arg;
-                case "bfd.profit": return "当前利润：" + arg;
-                case "bfd.foodTitle": return "食物消耗：";
-                case "bfd.unpricedNote": return "* 肉类/其他食物缺少可确认单价，未计入花费";
-                case "bfd.estimateNote": return "* 价值/利润按当前屠宰基础价值估算";
+                case "bfd.dailyFood": return "每日食物需要量：" + arg + " kcal";
+                case "bfd.daysLeft": return "剩余饲料可维持：" + arg + " 天";
                 default: return null;
             }
         }
