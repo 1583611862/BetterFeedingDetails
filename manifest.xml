@@ -3,8 +3,8 @@
   <ID>better_feeding_details</ID>
   <Name>凌波丽海苔的更好鱼价值详情</Name>
   <Author>凌波丽海苔</Author>
-  <ModVersion>1.0.6</ModVersion>
-  <Description>鱼类详情显示屠宰价值；鱼图标叠加性别与成年标记；循环水养殖系统详情显示每日食物需要量与剩余饲料可维持天数。Data-only: no changes to the base game's breeding, feeding, growth or butchery rules.</Description>
+  <ModVersion>1.0.7</ModVersion>
+  <Description>鱼类详情显示屠宰价值；鱼图标叠加 ♂/♀ 性别与成年标记；循环水养殖系统详情显示每日食物需要量与剩余饲料可维持天数。Data-only: no changes to the base game's breeding, feeding, growth or butchery rules.</Description>
   <GameVersions>
     <Version>0.46</Version>
   </GameVersions>
