@@ -3,12 +3,12 @@ using HarmonyLib;
 
 namespace BetterFeedingDetails.Patches
 {
-    [HarmonyPatch(typeof(AquacultureHelper), "InitFishItem")]
+    [HarmonyPatch(typeof(GameItemElement), "ValidateSelect")]
     internal static class FishIconPatch
     {
-        private static void Postfix(GameItem item)
+        private static void Postfix(GameItemElement __instance)
         {
-            FishIconBadges.Attach(item);
+            FishIconBadges.Sync(__instance);
         }
     }
 }
